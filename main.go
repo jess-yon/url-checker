@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-type result struct {
+type requestResult struct {
 	url string
 	status string
 }
@@ -15,8 +15,8 @@ var errRequestFailed = errors.New("Request failed")
 
 func main() {
 	// var results = map[string]string{}  // empty map 생성
-	// results := make(map[string]string)  // empty map 생성 (위와 동일)
-	c := make(chan result)
+	results := make(map[string]string)  // empty map 생성 (위와 동일)
+	c := make(chan requestResult)
 
 	urls := []string{
 		"https://www.airbnb.com/",
@@ -30,15 +30,23 @@ func main() {
 	for _, url := range urls {  // 첫번째 인자는 index, 두번째 인자는 value
 		go hitURL(url, c)
 	}
+
+	for i := 0; i < len(urls); i++ {
+		result := <-c
+		results[result.url] = result.status
+	}
+
+	for url, status := range results {
+		fmt.Println(url, status)
+	}
 }
 
 
-func hitURL(url string, c chan<- result) {
-	fmt.Println("Checking: ", url)
+func hitURL(url string, c chan<- requestResult) {
 	resp, err := http.Get(url)
 	status := "OK"
 	if err != nil || resp.StatusCode >= 400 {
 		status = "FAILED"
 	} 
-	c <- result{url: url, status: status}
+	c <- requestResult{url: url, status: status}
 }
